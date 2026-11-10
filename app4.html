@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Hub – with AI Research</title>
+    <style>
+        :root {
+            --primary: #3a6ea5;
+            --primary-light: #e8f0fe;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light-gray: #f1f5f9;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --sidebar-width: 250px;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --transition: 0.2s ease;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f8fafc;
+            color: var(--dark);
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--dark);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 10;
+            overflow-y: auto;  /* ⬅️ FIX: allow scrolling if items overflow */
+            transition: transform var(--transition);
+        }
+        .sidebar .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .sidebar .logo span { color: #60a5fa; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.3rem;
+            cursor: pointer;
+            transition: background var(--transition);
+            font-weight: 500;
+            color: #cbd5e1;
+            text-decoration: none;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .nav-item.active { background: var(--primary); color: white; font-weight: 600; }
+        .nav-icon { font-size: 1.3rem; width: 24px; text-align: center; }
+        .role-switch {
+            margin-top: auto;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .role-switch p { font-size: 0.8rem; margin-bottom: 0.5rem; color: #94a3b8; }
+        .switch-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #334155;
+            border-radius: 30px;
+            padding: 3px;
+            cursor: pointer;
+        }
+        .switch-option {
+            flex: 1;
+            text-align: center;
+            padding: 0.4rem 0;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            color: #94a3b8;
+        }
+        .switch-option.active {
+            background: white;
+            color: var(--dark);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            transition: margin-left var(--transition);
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .page-title { font-size: 1.8rem; font-weight: 700; }
+        .badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform var(--transition);
+        }
+        .card:hover { transform: translateY(-2px); }
+        .card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        input, textarea, select {
+            flex: 1;
+            padding: 0.7rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border var(--transition);
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.4rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--transition);
+            white-space: nowrap;
+        }
+        button.secondary { background: #e2e8f0; color: var(--dark); }
+        button.danger { background: var(--danger); }
+        button:hover { filter: brightness(0.95); }
+        .message-list {
+            max-height: 50vh;
+            overflow-y: auto;
+            background: var(--light-gray);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .msg {
+            margin-bottom: 0.8rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .msg.self { align-items: flex-end; }
+        .msg-bubble {
+            max-width: 75%;
+            padding: 0.6rem 1rem;
+            border-radius: 18px;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            line-height: 1.4;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+        .msg.self .msg-bubble { background: var(--primary); color: white; }
+        .msg.ai .msg-bubble { background: #eef2ff; border: 1px solid #c7d2fe; }
+        .msg-time { font-size: 0.7rem; color: var(--gray); margin: 0.2rem 0.5rem; }
+        .typing-indicator {
+            color: var(--gray);
+            font-style: italic;
+            padding: 0.5rem;
+        }
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .attendance-table th, .attendance-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+        .attendance-table th { background: #f1f5f9; font-weight: 600; }
+        .print-btn { background: #475569; }
+        @media print {
+            body { background: white; }
+            .sidebar, .no-print { display: none !important; }
+            .main-content { margin: 0; padding: 1cm; }
+            .card { box-shadow: none; border: 1px solid #ccc; }
+            .attendance-table th { background: #eee; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .mobile-menu-btn { display: block; position: fixed; top: 1rem; left: 1rem; z-index: 20; background: var(--dark); color: white; border: none; border-radius: 8px; padding: 0.5rem; }
+        }
+        .mobile-menu-btn { display: none; }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-btn no-print" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">📚 <span>School Hub</span></div>
+        <div class="nav-item active" data-page="chat">
+            <span class="nav-icon">💬</span> Chat <span id="chatBadge" class="badge" style="display:none;">0</span>
+        </div>
+        <div class="nav-item" data-page="activities">
+            <span class="nav-icon">📝</span> Activities <span id="activityBadge" class="badge" style="display:none;">0</span>
+        </div>
+        <div class="nav-item" data-page="announcements">
+            <span class="nav-icon">📢</span> Announcements
+        </div>
+        <div class="nav-item" data-page="attendance" id="attendanceNav">
+            <span class="nav-icon">✅</span> Attendance
+        </div>
+        <div class="nav-item" data-page="ai">
+            <span class="nav-icon">🤖</span> AI Research
+        </div>
+        <div class="role-switch">
+            <p>Current view:</p>
+            <div class="switch-btn" id="roleToggle">
+                <div class="switch-option active" data-role="teacher">👨‍🏫 Teacher</div>
+                <div class="switch-option" data-role="student">🎓 Student</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent"></main>
+
+    <script>
+        (function() {
+            // ---------- CONFIGURATION ----------
+            const PROXY_URL = 'http://127.0.0.1:5500/ai';  // Change if needed
+
+            // ---------- DATA STRUCTURE & LOCAL STORAGE ----------
+            const STORAGE_KEY = 'schoolHubDB';
+
+            const defaultDB = {
+                users: {
+                    teacher1: { id: 'teacher1', name: 'Mr. Johnson', role: 'teacher', classIds: ['classA'] },
+                    student1: { id: 'student1', name: 'Alice Williams', role: 'student', classIds: ['classA'] },
+                    student2: { id: 'student2', name: 'Bob Martinez', role: 'student', classIds: ['classA'] }
+                },
+                classes: {
+                    classA: { id: 'classA', name: 'Grade 5 - Mathematics', teacherId: 'teacher1', studentIds: ['student1', 'student2'] }
+                },
+                assignments: [
+                    { id: 'a1', classId: 'classA', title: 'Algebra Homework', description: 'Solve page 45, questions 1-10', dueDate: '2026-05-22', type: 'assignment', postedAt: Date.now() - 86400000, postedBy: 'teacher1' },
+                    { id: 'a2', classId: 'classA', title: 'Classwork: Fractions', description: 'Complete worksheet handed out in class', dueDate: '2026-05-20', type: 'classwork', postedAt: Date.now() - 172800000, postedBy: 'teacher1' }
+                ],
+                announcements: [
+                    { id: 'an1', title: 'Sports Day Next Friday', content: 'Wear your house colors and bring water bottles.', authorId: 'teacher1', authorName: 'Mr. Johnson', createdAt: Date.now() - 259200000, target: 'all' },
+                    { id: 'an2', title: 'Parent-Teacher Meeting', content: 'Scheduled for June 2nd. Sign-up sheet in the office.', authorId: 'teacher1', authorName: 'Mr. Johnson', createdAt: Date.now() - 432000000, target: 'classA' }
+                ],
+                chats: {
+                    'student1_teacher1': {
+                        participants: ['student1', 'teacher1'],
+                        messages: [
+                            { senderId: 'student1', text: 'Hello Mr. Johnson, I have a question about the homework.', timestamp: Date.now() - 3600000 },
+                            { senderId: 'teacher1', text: 'Of course, Alice. What do you need help with?', timestamp: Date.now() - 3500000 }
+                        ]
+                    },
+                    'student2_teacher1': {
+                        participants: ['student2', 'teacher1'],
+                        messages: [
+                            { senderId: 'student2', text: 'I will be absent tomorrow due to a doctor appointment.', timestamp: Date.now() - 7200000 }
+                        ]
+                    }
+                },
+                attendance: {},
+                roster: { classA: ['Alice Williams', 'Bob Martinez'] },
+                aiChatHistory: {}
+            };
+
+            let db = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (!db) {
+                db = defaultDB;
+                saveDB();
+            }
+
+            function saveDB() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+            }
+
+            let currentRole = 'teacher';
+            let currentUserId = 'teacher1';
+            let currentPage = 'chat';
+            const classId = 'classA';
+            const teacherId = 'teacher1';
+
+            // Helper functions
+            function getStudentIds() { return db.classes[classId].studentIds; }
+            function escapeHtml(text) {
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return String(text).replace(/[&<>"']/g, m => map[m]);
+            }
+
+            // ---------- UI RENDERING ----------
+            const mainContent = document.getElementById('mainContent');
+            const chatBadge = document.getElementById('chatBadge');
+            const activityBadge = document.getElementById('activityBadge');
+
+            // Role switch
+            document.getElementById('roleToggle').addEventListener('click', (e) => {
+                const option = e.target.closest('.switch-option');
+                if (!option) return;
+                const role = option.dataset.role;
+                if (role === currentRole) return;
+                currentRole = role;
+                currentUserId = role === 'teacher' ? teacherId : 'student1';
+                document.querySelectorAll('.switch-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                document.getElementById('attendanceNav').style.display = currentRole === 'teacher' ? 'flex' : 'none';
+                if (currentPage === 'attendance' && currentRole === 'student') {
+                    setActivePage('chat');
+                }
+                renderPage();
+                updateBadges();
+            });
+
+            // Navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const page = item.dataset.page;
+                    if (page) setActivePage(page);
+                });
+            });
+
+            function setActivePage(page) {
+                currentPage = page;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                const activeNav = document.querySelector(`.nav-item[data-page="${page}"]`);
+                if (activeNav) activeNav.classList.add('active');
+                renderPage();
+                document.querySelector('.sidebar').classList.remove('open');
+            }
+
+            function renderPage() {
+                switch(currentPage) {
+                    case 'chat': renderChatPage(); break;
+                    case 'activities': renderActivitiesPage(); break;
+                    case 'announcements': renderAnnouncementsPage(); break;
+                    case 'attendance': renderAttendancePage(); break;
+                    case 'ai': renderAIPage(); break;
+                }
+                updateBadges();
+            }
+
+            // ---------- BADGES ----------
+            function getUnreadChatCount() {
+                let count = 0;
+                const myId = currentUserId;
+                Object.values(db.chats).forEach(chat => {
+                    if (!chat.participants.includes(myId)) return;
+                    const lastMsg = chat.messages[chat.messages.length-1];
+                    if (lastMsg && lastMsg.senderId !== myId) count++;
+                });
+                return count;
+            }
+
+            function getNewAssignmentsCount() {
+                if (currentRole !== 'student') return 0;
+                const now = Date.now();
+                return db.assignments.filter(a => a.classId === classId && (now - a.postedAt < 86400000)).length;
+            }
+
+            function updateBadges() {
+                const chatCount = getUnreadChatCount();
+                chatBadge.textContent = chatCount;
+                chatBadge.style.display = chatCount > 0 ? 'inline-flex' : 'none';
+                const actCount = getNewAssignmentsCount();
+                activityBadge.textContent = actCount;
+                activityBadge.style.display = actCount > 0 ? 'inline-flex' : 'none';
+            }
+
+            // ---------- CHAT PAGE ----------
+            function renderChatPage() {
+                let html = `<div class="page-header"><h1 class="page-title">💬 Messages</h1></div>`;
+                if (currentRole === 'teacher') {
+                    const students = getStudentIds();
+                    html += `<div class="cards-grid">`;
+                    students.forEach(sid => {
+                        const student = db.users[sid];
+                        const chatId = [sid, teacherId].sort().join('_');
+                        if (!db.chats[chatId]) {
+                            db.chats[chatId] = { participants: [sid, teacherId], messages: [] };
+                            saveDB();
+                        }
+                        const lastMsg = db.chats[chatId].messages.slice(-1)[0];
+                        const preview = lastMsg ? escapeHtml(lastMsg.text.substring(0, 30)) : 'No messages yet';
+                        html += `<div class="card" onclick="window.openChat('${sid}')" style="cursor:pointer;">
+                            <h3>🎓 ${escapeHtml(student.name)}</h3>
+                            <p style="color:var(--gray);">${preview}</p>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                } else {
+                    const chatId = [currentUserId, teacherId].sort().join('_');
+                    if (!db.chats[chatId]) {
+                        db.chats[chatId] = { participants: [currentUserId, teacherId], messages: [] };
+                        saveDB();
+                    }
+                    html += `<div class="card">
+                        <h3>Chat with ${escapeHtml(db.users[teacherId].name)}</h3>
+                        <div class="message-list" id="messageContainer"></div>
+                        <div class="input-group">
+                            <input type="text" id="chatInput" placeholder="Type a message...">
+                            <button onclick="sendMessage('${teacherId}')">Send</button>
+                        </div>
+                    </div>`;
+                }
+                mainContent.innerHTML = html;
+                if (currentRole === 'student') {
+                    const chatId = [currentUserId, teacherId].sort().join('_');
+                    renderMessages(chatId);
+                }
+            }
+
+            window.openChat = function(studentId) {
+                if (currentRole !== 'teacher') return;
+                const chatId = [studentId, teacherId].sort().join('_');
+                mainContent.innerHTML = `
+                    <div class="page-header">
+                        <button class="secondary" onclick="setActivePage('chat')">← Back</button>
+                        <h1 class="page-title">Chat with ${escapeHtml(db.users[studentId].name)}</h1>
+                    </div>
+                    <div class="card">
+                        <div class="message-list" id="messageContainer"></div>
+                        <div class="input-group">
+                            <input type="text" id="chatInput" placeholder="Type a message...">
+                            <button onclick="sendMessage('${studentId}')">Send</button>
+                        </div>
+                    </div>`;
+                renderMessages(chatId);
+            };
+
+            function renderMessages(chatId) {
+                const container = document.getElementById('messageContainer');
+                if (!container) return;
+                const chat = db.chats[chatId];
+                if (!chat) return;
+                let html = '';
+                chat.messages.forEach(msg => {
+                    const isSelf = msg.senderId === currentUserId;
+                    const senderName = isSelf ? 'You' : escapeHtml(db.users[msg.senderId]?.name || 'Unknown');
+                    const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    html += `<div class="msg ${isSelf ? 'self' : ''}">
+                        <div class="msg-bubble">${escapeHtml(msg.text)}</div>
+                        <div class="msg-time">${senderName} · ${time}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            }
+
+            window.sendMessage = function(recipientId) {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                if (!text) return;
+                const chatId = [currentUserId, recipientId].sort().join('_');
+                if (!db.chats[chatId]) {
+                    db.chats[chatId] = { participants: [currentUserId, recipientId], messages: [] };
+                }
+                db.chats[chatId].messages.push({
+                    senderId: currentUserId,
+                    text: text,
+                    timestamp: Date.now()
+                });
+                saveDB();
+                renderMessages(chatId);
+                input.value = '';
+                updateBadges();
+            };
+
+            // ---------- ACTIVITIES PAGE ----------
+            function renderActivitiesPage() {
+                let html = `<div class="page-header"><h1 class="page-title">📝 Activities</h1>`;
+                if (currentRole === 'teacher') html += `<button onclick="showNewAssignmentForm()">+ New Assignment</button>`;
+                html += `</div>`;
+                const assignments = db.assignments.filter(a => a.classId === classId).sort((a,b) => b.postedAt - a.postedAt);
+                if (assignments.length === 0) {
+                    html += `<p>No activities yet.</p>`;
+                } else {
+                    html += `<div class="cards-grid">`;
+                    assignments.forEach(a => {
+                        const due = new Date(a.dueDate).toLocaleDateString();
+                        html += `<div class="card">
+                            <h3>${escapeHtml(a.title)} <span style="font-size:0.8rem;color:var(--gray);">(${a.type})</span></h3>
+                            <p>${escapeHtml(a.description)}</p>
+                            <p><strong>Due:</strong> ${due}</p>
+                            ${currentRole === 'student' ? `<p><em>Status: Pending</em></p>` : ''}
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+                mainContent.innerHTML = html;
+            }
+
+            window.showNewAssignmentForm = function() {
+                const formHtml = `
+                    <div class="card" style="margin-bottom:1.5rem;">
+                        <h3>New Activity</h3>
+                        <input type="text" id="assignTitle" placeholder="Title" required>
+                        <textarea id="assignDesc" placeholder="Description" style="width:100%; margin:0.5rem 0;" rows="2"></textarea>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="date" id="assignDue" value="${new Date().toISOString().split('T')[0]}">
+                            <select id="assignType"><option value="assignment">Assignment</option><option value="classwork">Classwork</option></select>
+                        </div>
+                        <div style="margin-top:0.8rem; display:flex; gap:0.5rem;">
+                            <button onclick="createAssignment()">Post</button>
+                            <button class="secondary" onclick="renderActivitiesPage()">Cancel</button>
+                        </div>
+                    </div>`;
+                mainContent.innerHTML = formHtml + mainContent.innerHTML;
+            };
+
+            window.createAssignment = function() {
+                const title = document.getElementById('assignTitle').value.trim();
+                const desc = document.getElementById('assignDesc').value.trim();
+                const due = document.getElementById('assignDue').value;
+                const type = document.getElementById('assignType').value;
+                if (!title) return alert('Title required');
+                db.assignments.push({
+                    id: 'a' + Date.now(),
+                    classId, title, description: desc, dueDate: due,
+                    type, postedAt: Date.now(), postedBy: currentUserId
+                });
+                saveDB();
+                renderActivitiesPage();
+                updateBadges();
+            };
+
+            // ---------- ANNOUNCEMENTS PAGE ----------
+            function renderAnnouncementsPage() {
+                let html = `<div class="page-header"><h1 class="page-title">📢 Announcements</h1>`;
+                if (currentRole === 'teacher') html += `<button onclick="showNewAnnouncementForm()">+ New Post</button>`;
+                html += `</div>`;
+                const filtered = db.announcements.filter(an => {
+                    if (an.target === 'all') return true;
+                    if (an.target === classId && db.classes[classId].studentIds.includes(currentUserId)) return true;
+                    if (currentRole === 'teacher' && an.target === classId) return true;
+                    return false;
+                }).sort((a,b) => b.createdAt - a.createdAt);
+                if (filtered.length === 0) html += `<p>No announcements.</p>`;
+                else {
+                    html += `<div class="cards-grid">`;
+                    filtered.forEach(an => {
+                        const date = new Date(an.createdAt).toLocaleString();
+                        html += `<div class="card">
+                            <h3>${escapeHtml(an.title)}</h3>
+                            <p>${escapeHtml(an.content)}</p>
+                            <small style="color:var(--gray);">Posted by ${escapeHtml(an.authorName)} on ${date}</small>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+                mainContent.innerHTML = html;
+            }
+
+            window.showNewAnnouncementForm = function() {
+                const form = `
+                    <div class="card" style="margin-bottom:1.5rem;">
+                        <h3>New Announcement</h3>
+                        <input type="text" id="annTitle" placeholder="Title">
+                        <textarea id="annContent" placeholder="Content" rows="3" style="width:100%; margin:0.5rem 0;"></textarea>
+                        <select id="annTarget"><option value="all">Everyone</option><option value="classA">Grade 5 Math only</option></select>
+                        <div style="margin-top:0.8rem; display:flex; gap:0.5rem;">
+                            <button onclick="createAnnouncement()">Post</button>
+                            <button class="secondary" onclick="renderAnnouncementsPage()">Cancel</button>
+                        </div>
+                    </div>`;
+                mainContent.innerHTML = form + mainContent.innerHTML;
+            };
+
+            window.createAnnouncement = function() {
+                const title = document.getElementById('annTitle').value.trim();
+                const content = document.getElementById('annContent').value.trim();
+                const target = document.getElementById('annTarget').value;
+                if (!title || !content) return alert('Both fields required');
+                db.announcements.push({
+                    id: 'an' + Date.now(),
+                    title, content, authorId: currentUserId,
+                    authorName: db.users[currentUserId].name,
+                    createdAt: Date.now(), target
+                });
+                saveDB();
+                renderAnnouncementsPage();
+            };
+
+            // ---------- ATTENDANCE PAGE (TEACHER ONLY) ----------
+            function renderAttendancePage() {
+                if (currentRole !== 'teacher') {
+                    setActivePage('chat');
+                    return;
+                }
+                const today = new Date().toISOString().split('T')[0];
+                const attendanceKey = `${classId}_${today}`;
+                let attendanceList = db.attendance[attendanceKey];
+                if (!attendanceList) {
+                    const roster = db.roster[classId] || [];
+                    attendanceList = roster.map(name => ({ name, present: true }));
+                    db.attendance[attendanceKey] = attendanceList;
+                    saveDB();
+                }
+
+                let html = `
+                    <div class="page-header">
+                        <h1 class="page-title">✅ Attendance</h1>
+                        <div>
+                            <input type="date" id="attendanceDate" value="${today}" onchange="changeAttendanceDate()">
+                            <button class="print-btn no-print" onclick="window.print()">🖨️ Print</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>${escapeHtml(db.classes[classId].name)} – Present Students</h3>
+                        <table class="attendance-table" id="attendanceTable">
+                            <thead><tr><th>#</th><th>Student Name</th><th>Present</th></tr></thead>
+                            <tbody id="attendanceBody"></tbody>
+                        </table>
+                        <div class="input-group no-print">
+                            <input type="text" id="newStudentName" placeholder="Add student name">
+                            <button onclick="addStudentToAttendance()">Add</button>
+                        </div>
+                        <button class="no-print" onclick="saveAttendance()">💾 Save Attendance</button>
+                        <button class="secondary no-print" onclick="saveRoster()" style="margin-left:0.5rem;">Save as Roster</button>
+                    </div>`;
+                mainContent.innerHTML = html;
+                renderAttendanceTable(attendanceList);
+            }
+
+            function renderAttendanceTable(list) {
+                const tbody = document.getElementById('attendanceBody');
+                if (!tbody) return;
+                tbody.innerHTML = list.map((s, i) => `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${escapeHtml(s.name)}</td>
+                        <td><input type="checkbox" ${s.present ? 'checked' : ''} onchange="toggleAttendance(${i})" class="no-print"></td>
+                    </tr>`).join('');
+            }
+
+            window.toggleAttendance = function(index) {
+                const today = document.getElementById('attendanceDate').value;
+                const key = `${classId}_${today}`;
+                if (db.attendance[key]) {
+                    db.attendance[key][index].present = !db.attendance[key][index].present;
+                    saveDB();
+                }
+            };
+
+            window.addStudentToAttendance = function() {
+                const input = document.getElementById('newStudentName');
+                const name = input.value.trim();
+                if (!name) return;
+                const today = document.getElementById('attendanceDate').value;
+                const key = `${classId}_${today}`;
+                if (!db.attendance[key]) db.attendance[key] = [];
+                db.attendance[key].push({ name, present: true });
+                saveDB();
+                renderAttendanceTable(db.attendance[key]);
+                input.value = '';
+            };
+
+            window.saveAttendance = function() {
+                saveDB();
+                alert('Attendance saved to this device.');
+            };
+
+            window.saveRoster = function() {
+                const today = document.getElementById('attendanceDate').value;
+                const key = `${classId}_${today}`;
+                const list = db.attendance[key] || [];
+                const names = list.map(s => s.name);
+                db.roster[classId] = [...new Set(names)];
+                saveDB();
+                alert('Roster updated from today\'s attendance.');
+            };
+
+            window.changeAttendanceDate = function() {
+                const date = document.getElementById('attendanceDate').value;
+                const key = `${classId}_${date}`;
+                if (!db.attendance[key]) {
+                    db.attendance[key] = (db.roster[classId] || []).map(name => ({ name, present: true }));
+                    saveDB();
+                }
+                renderAttendanceTable(db.attendance[key]);
+            };
+
+            // ---------- AI RESEARCH PAGE ----------
+            function renderAIPage() {
+                let html = `<div class="page-header"><h1 class="page-title">🤖 AI Research Assistant</h1></div>`;
+                html += `<div class="card">
+                    <p>Ask any study question. The AI can help explain concepts, summarize topics, or suggest research directions.</p>
+                    <div class="message-list" id="aiMessageContainer"></div>
+                    <div id="aiTyping" class="typing-indicator" style="display:none;">AI is thinking...</div>
+                    <div class="input-group">
+                        <input type="text" id="aiInput" placeholder="Type your question...">
+                        <button onclick="sendAIMessage()">Send</button>
+                    </div>
+                </div>`;
+                mainContent.innerHTML = html;
+                renderAIMessages();
+            }
+
+            function renderAIMessages() {
+                const container = document.getElementById('aiMessageContainer');
+                if (!container) return;
+                const history = db.aiChatHistory[currentUserId] || [];
+                let html = '';
+                history.forEach(msg => {
+                    const isUser = msg.role === 'user';
+                    const bubbleClass = isUser ? 'self' : 'ai';
+                    html += `<div class="msg ${bubbleClass}">
+                        <div class="msg-bubble">${escapeHtml(msg.content)}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            }
+
+            window.sendAIMessage = async function() {
+                const input = document.getElementById('aiInput');
+                if (!input) return;
+                const message = input.value.trim();
+                if (!message) return;
+
+                const history = db.aiChatHistory[currentUserId] || [];
+                history.push({ role: 'user', content: message });
+                db.aiChatHistory[currentUserId] = history;
+                saveDB();
+                renderAIMessages();
+                input.value = '';
+
+                const typingEl = document.getElementById('aiTyping');
+                if (typingEl) typingEl.style.display = 'block';
+
+                try {
+                    const response = await fetch(PROXY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'deepseek-chat',
+                            messages: [
+                                { role: 'system', content: 'You are a helpful research assistant for school students. Provide clear, accurate explanations.' },
+                                ...history
+                            ],
+                            stream: false
+                        })
+                    });
+                    const data = await response.json();
+                    const reply = data.choices[0].message.content;
+                    history.push({ role: 'assistant', content: reply });
+                    db.aiChatHistory[currentUserId] = history;
+                    saveDB();
+                } catch (error) {
+                    history.push({ role: 'assistant', content: 'Sorry, the AI is currently unavailable. Make sure the proxy server is running.' });
+                    db.aiChatHistory[currentUserId] = history;
+                    saveDB();
+                }
+                if (typingEl) typingEl.style.display = 'none';
+                renderAIMessages();
+            };
+
+            // ---------- INITIAL LOAD ----------
+            setActivePage('chat');
+        })();
+    </script>
+</body>
+</html>
